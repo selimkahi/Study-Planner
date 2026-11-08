@@ -6,11 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +33,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun StudyPlannerScreen() {
     var taskTitle by remember { mutableStateOf("") }
-    val tasks = remember { mutableStateListOf<String>() }
+    val context = LocalContext.current
+    val storage = remember { TaskStorage(context.applicationContext) }
+    val tasks by storage.tasks.collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
 
     Scaffold { screenPadding ->
         Column(
@@ -46,8 +55,11 @@ fun StudyPlannerScreen() {
 
             Button(
                 onClick = {
-                    tasks.add(taskTitle.trim())
+                    val title = taskTitle.trim()
                     taskTitle = ""
+                    scope.launch {
+                        storage.addTask(title)
+                    }
                 },
                 enabled = taskTitle.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
@@ -59,8 +71,32 @@ fun StudyPlannerScreen() {
             Text("Tasks", style = MaterialTheme.typography.titleMedium)
 
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(tasks) { task ->
-                    Text(task, modifier = Modifier.padding(vertical = 8.dp))
+                itemsIndexed(tasks) { index, task ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = task.isCompleted,
+                            onCheckedChange = { checked ->
+                                scope.launch {
+                                    storage.setCompleted(index, checked)
+                                }
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Complete ${task.title}"
+                            }
+                        )
+                        Text(
+                            text = task.title,
+                            textDecoration = if (task.isCompleted) {
+                                TextDecoration.LineThrough
+                            } else {
+                                TextDecoration.None
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
