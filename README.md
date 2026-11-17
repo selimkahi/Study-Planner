@@ -60,23 +60,24 @@ Wait for the updated checkbox state to appear before closing the app. Clearing a
 
 - **Screen:** one Jetpack Compose screen, `StudyPlannerScreen`, containing the input, button, and `LazyColumn`. This progress version needs no navigation between screens.
 - **Task:** a small Kotlin data class with `title: String` and `isCompleted: Boolean`.
-- **UI actions:** `MainActivity.kt` calls `addTask` or `setCompleted` in a coroutine.
+- **ViewModel:** `StudyPlannerViewModel.kt` handles `addTask` and `setCompleted` using `viewModelScope`. It exposes the task list as StateFlow. The temporary text being typed remains local Compose state.
 - **Local storage:** `TaskStorage.kt` saves a JSON list in Preferences DataStore on the device.
-- **Data flow:** a UI action updates DataStore. Its Flow emits the saved list. `collectAsState` observes that list and Compose updates the screen. Restarting the app loads the same stored values.
-- **Current scope:** the demonstrated feature works locally. API integration, ViewModel-managed state, additional screens, and background reminders are planned work.
+- **Data flow:** the screen reports an action to the ViewModel, which calls `TaskStorage`. DataStore emits the saved list, the ViewModel shares it as StateFlow, and `collectAsStateWithLifecycle` observes it in Compose. Restarting the app loads the same stored values.
+- **Current scope:** the demonstrated feature works locally with a ViewModel. API integration, additional screens, and background reminders are planned work.
 
 Main source files:
 
 ```text
 app/src/main/java/com/example/studyplanner/
-    MainActivity.kt   # Screen and user actions
-    TaskStorage.kt    # Task model, saving, and loading
+    MainActivity.kt            # Screen and ViewModel setup
+    StudyPlannerViewModel.kt   # Task actions and observable screen data
+    TaskStorage.kt             # Task model, saving, and loading
 ```
 
 ## Remaining scope and next steps
 
 1. Add course and deadline fields, then task editing and filtering/grouping.
-2. Introduce ViewModel-managed state and navigation as additional screens are added.
+2. Add navigation as additional screens are introduced, and expand the ViewModel's screen state as needed.
 3. Add one useful task reminder using notifications and an appropriate scheduling option. WorkManager is only a proposed option; it is not implemented in this version.
 4. Select a relevant course-approved API and add loading and error states for the final project.
 5. Recheck the complete planner, improve input validation, and prepare the final report and demonstration.

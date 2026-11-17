@@ -11,12 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,24 +26,26 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MaterialTheme {
-                StudyPlannerScreen()
+                // The factory supplies storage when the ViewModel is first created.
+                val plannerViewModel: StudyPlannerViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer {
+                            StudyPlannerViewModel(TaskStorage(applicationContext))
+                        }
+                    }
+                )
+                StudyPlannerScreen(plannerViewModel)
             }
         }
     }
 }
 
 @Composable
-fun StudyPlannerScreen() {
+fun StudyPlannerScreen(viewModel: StudyPlannerViewModel) {
     // Keeps the typed title while Compose redraws the screen.
     var taskTitle by remember { mutableStateOf("") }
-    // Gets the Android context needed by task storage.
-    val context = LocalContext.current
-    // Keeps one storage object for saving and loading tasks.
-    val storage = remember { TaskStorage(context.applicationContext) }
-    // Reads saved tasks and updates the screen when they change.
-    val tasks by storage.tasks.collectAsState(initial = emptyList())
-    // Lets us save data without freezing the screen.
-    val scope = rememberCoroutineScope()
+    // Observes the ViewModel's task list while the screen is visible.
+    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
 
 
     Scaffold { screenPadding ->
@@ -60,11 +64,8 @@ fun StudyPlannerScreen() {
             )
             Button(
                 onClick = {
-                    val title = taskTitle.trim()
+                    viewModel.addTask(taskTitle)
                     taskTitle = ""
-                    scope.launch {
-                        storage.addTask(title)
-                    }
                 },
                 enabled = taskTitle.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
@@ -83,10 +84,8 @@ fun StudyPlannerScreen() {
                         Checkbox(
                             checked = task.isCompleted,
                             onCheckedChange = { checked ->
-                                // Saves this task's new checked or unchecked value.
-                                scope.launch {
-                                    storage.setCompleted(index, checked)
-                                }
+                                // Asks the ViewModel to save the checkbox change.
+                                viewModel.setCompleted(index, checked)
                             },
                             // Describes the checkbox for screen readers.
                             modifier = Modifier.semantics {
