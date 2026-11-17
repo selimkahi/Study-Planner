@@ -19,12 +19,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    // Runs when the activity starts and sets up the app's screen.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Lets the screen extend behind the system bars.
         enableEdgeToEdge()
-        // Displays our screen using the app's Material theme.
         setContent {
             MaterialTheme {
                 StudyPlannerScreen()
@@ -33,7 +30,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Builds the screen for adding tasks and marking them complete.
 @Composable
 fun StudyPlannerScreen() {
     // Keeps the typed title while Compose redraws the screen.
@@ -47,17 +43,14 @@ fun StudyPlannerScreen() {
     // Lets us save data without freezing the screen.
     val scope = rememberCoroutineScope()
 
-    // Provides the screen layout and padding around system bars.
+
     Scaffold { screenPadding ->
-        // Places the screen's contents vertically with extra spacing.
+
         Column(
             modifier = Modifier.fillMaxSize().padding(screenPadding).padding(16.dp)
         ) {
-            // Shows the heading and adds a gap below it.
-            Text("Study Planner", style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+            Text("Study Planner ", style = MaterialTheme.typography.headlineMedium)
 
-            // Displays the title input and remembers each text change.
             OutlinedTextField(
                 value = taskTitle,
                 onValueChange = { taskTitle = it },
@@ -65,34 +58,23 @@ fun StudyPlannerScreen() {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Adds the typed task when the button is pressed.
             Button(
                 onClick = {
-                    // Removes spaces at the ends, then clears the input.
                     val title = taskTitle.trim()
                     taskTitle = ""
-                    // Starts a coroutine to save the new task.
                     scope.launch {
                         storage.addTask(title)
                     }
                 },
-                // Prevents adding an empty or spaces-only title.
                 enabled = taskTitle.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Add task")
             }
 
-            // Adds a gap and shows the list heading.
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Tasks", style = MaterialTheme.typography.titleMedium)
-
             // Shows the tasks in a scrolling list.
             LazyColumn(modifier = Modifier.weight(1f)) {
-                // Gives us each task and its position in the list.
                 itemsIndexed(tasks) { index, task ->
-                    // Places the checkbox and task title side by side.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
